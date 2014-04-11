@@ -1,8 +1,16 @@
 <!DOCTYPE HTML>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Vimont Toyota Backbone.js Application</title>
+  <meta charset="UTF-8">
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="viewport" content="initial-scale=1,width=device-width,maximum-scale=1">
+  <title>Vimont Toyota Backbone.js Application</title>
+
+  <script src="js/jquery-1.11.0.js"></script>
+  <script src="js/underscore.js"></script>
+  <script src="js/backbone.js"></script>
+  <script src="js/mediaelement/mediaelement-and-player.min.js"></script>
+  <link rel="stylesheet" href="js/mediaelement/mediaelementplayer.css" />
 </head>
 <body>
 
@@ -12,50 +20,45 @@
   </div>
   <div id="sections">
     <div class="section">Produits financiers</div>
+      <script type="text/template" id="view-sections">
+      </script>
   </div>
-</div>
-
-<script type="text/template" id="view-sections">
-</script>
-
-<div id="screen">screen</div>
-
-<script type="text/template" id="view-video">
-<video poster="<%= poster %>">
-  <% _.each(sources, function (source, type) { %>
-    <source type="<%= type %>" src="<%= source %>"/>
-  <% }); %>
-</video>
-</script>
-
-<div id="footer">
   <div id="controls">
+    <div id="controls-back">back</div>
+    <div id="controls-next">next</div>
     <div id="timeline">
       <div id="timeline-buffer"></div>
       <div id="timeline-duration"></div>
       <div id="timeline-title"></div>
     </div>
-    <div id="controls-play">play</div>
-    <div id="controls-back">back</div>
-    <div id="controls-next">next</div>
   </div>
+</div>
 
+<div id="main-view">
+  <div id="screen">screen</div>
+
+  <script type="text/template" id="view-video">
+  <video poster="<%= poster %>" controls>
+    <% _.each(sources, function (source, type) { %>
+      <source type="<%= type %>" src="<%= source %>"/>
+    <% }); %>
+  </video>
+  </script>
+
+</div>
+
+<div id="sidebar">
   <ul id="playlist">
-
   </ul>
 </div>
 
 <script type="text/template" id="view-playlist">
   <img class="playlist-capsule-thumbnail" src="<%= poster %>"/>
   <div class="playlist-capsule-title"><%= title %></div>
-  <input type="checkbox" checked/>
+  <input class="toggle-in-playlist" type="checkbox" checked/>
 </script>
 <script type="text/template" id="view-controls">
 </script>
-
-<script src="js/jquery-1.11.0.js"></script>
-<script src="js/underscore.js"></script>
-<script src="js/backbone.js"></script>
 
 <script>
 
@@ -87,17 +90,24 @@ var VideoView = Backbone.View.extend({
     //
   },
   render: function () {
+    var self = this;
     this.$el.html(this.template(this.model.toJSON()));
-    this.video = this.$el.find("video").get(0);
+    /*this.$el.find("video").mediaelementplayer({
+      iPadUseNativeControls: true,
+      iPhoneUseNativeControls: true,
+      features: ['playpause', 'progress' ,'volume'],
+      success: function (player, node) {
+        self.player = player;
+      }
+    });*/
+    this.player = this.$el.find("video").get(0);
+    this.player.addEventListener('ended', function () {
+      self.trigger('vimont:ended');
+    });
     return this;
   },
   togglePlay: function () {
-    if(this.video.paused) {
-      this.video.play();
-    } else {
-      this.video.pause();
-    }
-    return this.video.paused;
+    this.player.play();
   }
 });
 
@@ -108,7 +118,7 @@ var PlaylistView = Backbone.View.extend({
   template: _.template($("#view-playlist").html()),
   events: {
     "click" : "loadCapsule",
-    "click .toggle" : "toggleList"
+    "click .toggle-in-playlist" : "toggleList"
   },
   render: function () {
     this.$el.html(this.template(this.model.toJSON()));
@@ -122,8 +132,9 @@ var PlaylistView = Backbone.View.extend({
     // Send a message to the AppView to play this capsule
     this.trigger('vimont:play', this);
   },
-  toggleList : function () {
+  toggleList : function (e) {
     // Add or remove the model from the playlist
+    e.stopImmediatePropagation();
   }
 
 });
@@ -150,70 +161,98 @@ var AppView = Backbone.View.extend({
   },
   loadCapsule: function (capsule) {
     this.openScreen(capsule.model);
+
   },
   openScreen: function (activeModel) {
-    $("#screen").html("");
+    // Silly Chrome hack to prevent bug where videos won't start
+    // unless the first one got played
+    var chromeFix = $("video").get(0);
+    if(chromeFix) { chromeFix.play(); }
+
     this.screen = new VideoView({model: activeModel});
     $("#screen").html(this.screen.render().el);
     $("#timeline-title").html(activeModel.get('title'));
+
+    this.listenTo(this.screen, "vimont:ended", this.nextCapsule);
+
+    // Set a timer to start the video
+    var size = 0;
+    clearInterval(this.startDelay);
+    this.startDelay = setInterval(function () {
+      size += 1;
+      $("#timeline-duration").fadeIn();
+      $("#timeline-duration").width(size + "%");
+      if(size >= 100) {
+        clearInterval(this.startDelay);
+        this.togglePlay();
+        $("#timeline-duration").fadeOut();
+      }
+    }.bind(this), 25);
   },
   togglePlay: function () {
-
     if(this.screen.togglePlay()) {
       $("#controls-play").addClass("paused");
     } else {
       $("#controls-play").removeClass("paused");
     }
+  },
+  nextCapsule: function () {
+    // Move active screen in collection, or wrap to start
+    this.openScreen(playlist.at((playlist.indexOf(this.screen.model) + 1) % playlist.size()));
+  },
+  previousCapsule: function () {
+    // Move active screen in collection, or wrap to end
+    this.openScreen(playlist.at((playlist.indexOf(this.screen.model) + playlist.size() - 1) % playlist.size()));
   }
 });
 
 // Must load this from the included JSON data
-var playlist = new Playlist;
+var playlist = new Playlist();
 
 var playlistData = [
   {
     "title" : "Capsule 1",
     "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
     "sources" : {
-      "video/mp4" : "http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4",
-      "video/webm" : "http://clips.vorwaerts-gmbh.de/big_buck_bunny.webm",
-      "video/ogg" : "http://clips.vorwaerts-gmbh.de/big_buck_bunny.ogv"
+      "video/webm" : "/big_buck_bunny.webm",
+      "video/mp4" : "/big_buck_bunny.mp4",
+      "video/ogg" : "/big_buck_bunny.ogv"
     }
   }
   ,{
     "title" : "Capsule 2",
     "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
     "sources" : {
-      "video/mp4" : "http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4",
-      "video/webm" : "http://clips.vorwaerts-gmbh.de/big_buck_bunny.webm",
-      "video/ogg" : "http://clips.vorwaerts-gmbh.de/big_buck_bunny.ogv"
+      "video/webm" : "/big_buck_bunny.webm",
+      "video/mp4" : "/big_buck_bunny.mp4",
+      "video/ogg" : "/big_buck_bunny.ogv"
     }
   }
   ,{
     "title" : "Capsule 3",
     "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
     "sources" : {
-      "video/mp4" : "http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4",
-      "video/webm" : "http://clips.vorwaerts-gmbh.de/big_buck_bunny.webm",
-      "video/ogg" : "http://clips.vorwaerts-gmbh.de/big_buck_bunny.ogv"
+      "video/webm" : "/big_buck_bunny.webm",
+      "video/mp4" : "/big_buck_bunny.mp4",
+      "video/ogg" : "/big_buck_bunny.ogv"
     }
   }
   ,{
     "title" : "Capsule 4",
     "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
     "sources" : {
-      "video/mp4" : "http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4",
-      "video/webm" : "http://clips.vorwaerts-gmbh.de/big_buck_bunny.webm",
-      "video/ogg" : "http://clips.vorwaerts-gmbh.de/big_buck_bunny.ogv"
+      "video/mp4" : "/big_buck_bunny.mp4",
+      "video/webm" : "/big_buck_bunny.webm",
+      "video/ogg" : "/big_buck_bunny.ogv"
     }
   }
   ,{
     "title" : "Capsule 5",
     "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
     "sources" : {
-      "video/mp4" : "http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4",
-      "video/webm" : "http://clips.vorwaerts-gmbh.de/big_buck_bunny.webm",
-      "video/ogg" : "http://clips.vorwaerts-gmbh.de/big_buck_bunny.ogv"
+      "video/mp4" : "/big_buck_bunny.mp4",
+      "video/webm" : "/big_buck_bunny.webm",
+      "video/ogg" : "/big_buck_bunny.ogv"
     }
   }
 ];
@@ -229,13 +268,47 @@ var appView = new AppView();
     background: black;
     color: white;
     font-family: sans-serif;
+    font-size: 16px;
+    line-height: 1em;
+    margin: 0;
+    padding: 0;
+  }
+  #header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    height: 80px;
+    background: rgba(0,0,0,.1);
+    text-align: center;
+    cursor: pointer;
+  }
+  #main-view {
+    position: fixed;
+    margin-right: 240px;
+    margin-top: 80px;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+  }
+  #screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 100%;
+    width: 100%;
+    margin: auto;
   }
   video {
-    width: 960px;
-    height: 540px;
-    max-width: 100%;
+    width: 100%;
+    height: 100%;
     display: block;
-    margin: 0 auto;
+    position: absolute;
   }
   img {
     display: block;
@@ -244,10 +317,59 @@ var appView = new AppView();
   }
   ul {
     padding: 0;
+    margin: 0;
   }
   .playlist-view {
-    width: 20%;
+    width: 100%;
     display: inline-block;
+  }
+  #sidebar {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    top: 80px;
+    width: 240px;
+    z-index: 1000;
+    background: rgba(0,0,0,.5);
+    text-align: center;
+    cursor: pointer;
+    overflow: scroll;
+  }
+  #controls {
+    position: relative;
+    width: 98%;
+    height: 20px;
+    padding: 1%;
+  }
+  #controls-back {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    padding: 10px;
+    background: rgba(255,255,255,.5);
+  }
+  #controls-next {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    padding: 10px;
+    background: rgba(255,255,255,.5);
+  }
+  #timeline {
+    width: 100%;
+    text-align: center;
+  }
+  #timeline-duration {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0;
+    background: red;
+    z-index: -1;
+    display: none;
   }
 </style>
 </body>
