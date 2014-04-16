@@ -9,7 +9,7 @@
   <script src="js/jquery-1.11.0.js"></script>
   <script src="js/underscore.js"></script>
   <script src="js/backbone.js"></script>
-  <script src="js/mediaelement/mediaelement-and-player.min.js"></script>
+  <script src="js/mediaelement/mediaelement-and-player.js"></script>
   <link rel="stylesheet" href="js/mediaelement/mediaelementplayer.css" />
 </head>
 <body>
@@ -23,6 +23,9 @@
       <script type="text/template" id="view-sections">
       </script>
   </div>
+</div>
+
+<div id="main-view">
   <div id="controls">
     <div id="controls-back">back</div>
     <div id="controls-next">next</div>
@@ -32,13 +35,13 @@
       <div id="timeline-title"></div>
     </div>
   </div>
-</div>
+  <div id="screen">
 
-<div id="main-view">
-  <div id="screen">screen</div>
+
+  </div>
 
   <script type="text/template" id="view-video">
-  <video poster="<%= poster %>" controls>
+  <video id="media-element" controls height="100%" width="100%">
     <% _.each(sources, function (source, type) { %>
       <source type="<%= type %>" src="<%= source %>"/>
     <% }); %>
@@ -62,8 +65,6 @@
 
 <script>
 
-// Load all capsules into a collection
-
 var Capsule = Backbone.Model.extend({
   defaults: {
     "title" : "Untitled",
@@ -82,27 +83,29 @@ var Playlist = Backbone.Collection.extend({
 
 // Contains the video player
 var VideoView = Backbone.View.extend({
-  tagName: "div",
-  className: "innerScreen",
+  el: $("#screen"),
   template: _.template($("#view-video").html()),
   events: {},
   initialize: function() {
-    //
+    this.render();
   },
   render: function () {
     var self = this;
     this.$el.html(this.template(this.model.toJSON()));
-    /*this.$el.find("video").mediaelementplayer({
+    this.player = new MediaElementPlayer("#media-element", {
       iPadUseNativeControls: true,
       iPhoneUseNativeControls: true,
       features: ['playpause', 'progress' ,'volume'],
       success: function (player, node) {
-        self.player = player;
       }
-    });*/
-    this.player = this.$el.find("video").get(0);
+    }).media;
+    console.log(this.player);
     this.player.addEventListener('ended', function () {
       self.trigger('vimont:ended');
+    });
+    this.player.addEventListener('canplay', function () {
+      self.trigger('vimont:canplay');
+      console.log("canplay");
     });
     return this;
   },
@@ -166,11 +169,12 @@ var AppView = Backbone.View.extend({
   openScreen: function (activeModel) {
     // Silly Chrome hack to prevent bug where videos won't start
     // unless the first one got played
-    var chromeFix = $("video").get(0);
-    if(chromeFix) { chromeFix.play(); }
+    //var chromeFix = $("video").get(0);
+    //if(chromeFix) { chromeFix.play(); chromeFix.pause(); }
 
     this.screen = new VideoView({model: activeModel});
-    $("#screen").html(this.screen.render().el);
+
+   // $("#screen").html(this.screen.render().el);
     $("#timeline-title").html(activeModel.get('title'));
 
     this.listenTo(this.screen, "vimont:ended", this.nextCapsule);
@@ -187,7 +191,7 @@ var AppView = Backbone.View.extend({
         this.togglePlay();
         $("#timeline-duration").fadeOut();
       }
-    }.bind(this), 25);
+    }.bind(this), 5000 / 100);
   },
   togglePlay: function () {
     if(this.screen.togglePlay()) {
@@ -211,48 +215,38 @@ var playlist = new Playlist();
 
 var playlistData = [
   {
-    "title" : "Capsule 1",
+    "title" : "01-PEA-ProtectionExtraAttentivev07",
     "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
     "sources" : {
-      "video/webm" : "/big_buck_bunny.webm",
-      "video/mp4" : "/big_buck_bunny.mp4",
-      "video/ogg" : "/big_buck_bunny.ogv"
+      "video/mp4" : "http://vimonttoyota.agencewebdiffusion.com.s3.amazonaws.com/videos/01-PEA-ProtectionExtraAttentivev07SORTIE-res360p-rate550k.mp4"
     }
   }
   ,{
-    "title" : "Capsule 2",
+    "title" : "02-Assurancederemplacementv05",
     "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
     "sources" : {
-      "video/webm" : "/big_buck_bunny.webm",
-      "video/mp4" : "/big_buck_bunny.mp4",
-      "video/ogg" : "/big_buck_bunny.ogv"
+      "video/mp4" : "http://vimonttoyota.agencewebdiffusion.com.s3.amazonaws.com/videos/02-Assurancederemplacementv05SORTIE-res360p-rate550k.mp4"
     }
   }
   ,{
-    "title" : "Capsule 3",
+    "title" : "03-CarteUsure-v04",
     "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
     "sources" : {
-      "video/webm" : "/big_buck_bunny.webm",
-      "video/mp4" : "/big_buck_bunny.mp4",
-      "video/ogg" : "/big_buck_bunny.ogv"
+      "video/mp4" : "http://vimonttoyota.agencewebdiffusion.com.s3.amazonaws.com/videos/03-CarteUsure-v04-SORTIE-res360p-rate550k.mp4"
     }
   }
   ,{
-    "title" : "Capsule 4",
+    "title" : "04-Cueilletteduvehiculev06",
     "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
     "sources" : {
-      "video/mp4" : "/big_buck_bunny.mp4",
-      "video/webm" : "/big_buck_bunny.webm",
-      "video/ogg" : "/big_buck_bunny.ogv"
+      "video/mp4" : "http://vimonttoyota.agencewebdiffusion.com.s3.amazonaws.com/videos/04-Cueilletteduvehiculev06SORTIE-res360p-rate550k.mp4"
     }
   }
   ,{
-    "title" : "Capsule 5",
+    "title" : "05-Retouralamaisonv03",
     "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
     "sources" : {
-      "video/mp4" : "/big_buck_bunny.mp4",
-      "video/webm" : "/big_buck_bunny.webm",
-      "video/ogg" : "/big_buck_bunny.ogv"
+      "video/mp4" : "http://vimonttoyota.agencewebdiffusion.com.s3.amazonaws.com/videos/05-Retouralamaisonv03-SORTIE-res360p-rate550k.mp4"
     }
   }
 ];
@@ -265,8 +259,8 @@ var appView = new AppView();
 
 <style type="text/css">
   body {
-    background: black;
-    color: white;
+    background: white;
+    color: gray;
     font-family: sans-serif;
     font-size: 16px;
     line-height: 1em;
@@ -282,11 +276,13 @@ var appView = new AppView();
     height: 80px;
     background: rgba(0,0,0,.1);
     text-align: center;
+  }
+  #controls {
     cursor: pointer;
   }
   #main-view {
     position: fixed;
-    margin-right: 240px;
+    margin-right: 20%;
     margin-top: 80px;
     top: 0;
     left: 0;
@@ -300,7 +296,8 @@ var appView = new AppView();
     left: 0;
     right: 0;
     bottom: 0;
-    height: 100%;
+    height: 0;
+    padding-bottom: 56.25%;
     width: 100%;
     margin: auto;
   }
@@ -328,9 +325,9 @@ var appView = new AppView();
     bottom: 0;
     right: 0;
     top: 80px;
-    width: 240px;
+    width: 20%;
     z-index: 1000;
-    background: rgba(0,0,0,.5);
+    background: rgba(0,0,0,.25);
     text-align: center;
     cursor: pointer;
     overflow: scroll;
