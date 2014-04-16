@@ -66,18 +66,43 @@
 <script>
 
 var Capsule = Backbone.Model.extend({
-  defaults: {
-    "title" : "Untitled",
-    "section" : "Other",
-    "duration" : 0,
-    "buffer" : 0,
-    "seek" : 0,
-    "inPlaylist" : true
+  defaults: function () {
+    return {
+      "title" : "Untitled",
+      "section" : "Other",
+      "duration" : 0,
+      "buffer" : 0,
+      "seek" : 0,
+      "inPlaylist" : true
+    };
+  },
+
+  toggleInPlaylist: function () {
+    this.save({toggleInPlaylist: !this.get("inPlaylist")});
   }
 });
 
 var Playlist = Backbone.Collection.extend({
-  model: Capsule
+  model: Capsule,
+
+  selected: function () {
+    return this.where({inPlaylist: true});
+  },
+  rotate: function (capsule) {
+    // Find the next neighbor in the global playlist
+    var idx = this.indexOf(capsule);
+
+    // Build a list of capsules after and before the active capsule
+    return new Playlist(_.union(this.rest(idx + 1), this.first(idx)));
+  },
+  next: function(capsule) {
+    // Return only if toggled to active
+    return _.first(this.rotate(capsule).selected());
+  },
+  previous: function(capsule) {
+    // Return only if toggled to active
+    return _.last(this.rotate(capsule).selected());
+  }
 });
 
 
@@ -202,11 +227,11 @@ var AppView = Backbone.View.extend({
   },
   nextCapsule: function () {
     // Move active screen in collection, or wrap to start
-    this.openScreen(playlist.at((playlist.indexOf(this.screen.model) + 1) % playlist.size()));
+    this.openScreen(playlist.next(this.screen.model));
   },
   previousCapsule: function () {
     // Move active screen in collection, or wrap to end
-    this.openScreen(playlist.at((playlist.indexOf(this.screen.model) + playlist.size() - 1) % playlist.size()));
+    this.openScreen(playlist.previous(this.screen.model));
   }
 });
 
