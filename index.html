@@ -78,13 +78,25 @@ var Capsule = Backbone.Model.extend({
   },
 
   toggleInPlaylist: function () {
-    this.save({toggleInPlaylist: !this.get("inPlaylist")});
+    this.set({inPlaylist: !this.get("inPlaylist")});
+    return this.get("inPlaylist");
   }
 });
 
 var Playlist = Backbone.Collection.extend({
   model: Capsule,
+  initialize: function () {
+    this.on('change:inPlaylist', function () {
+      var destination = "/" + _.reduce(new Playlist(this.selected()).pluck("path"), function (url, path) {
+          return url + "/" + path;
+      });
+      playlistRouter.navigate(destination, {replace: true});
 
+    });
+  },
+  playlistChange : function () {
+    console.log('hey');
+  },
   selected: function () {
     return this.where({inPlaylist: true});
   },
@@ -122,16 +134,17 @@ var VideoView = Backbone.View.extend({
       iPhoneUseNativeControls: true,
       features: ['playpause', 'progress' ,'volume'],
       success: function (player, node) {
+        self.player = player;
+        console.log(player);
       }
-    }).media;
-    console.log(this.player);
-    this.player.addEventListener('ended', function () {
+    });
+    /*this.player.addEventListener('ended', function () {
       self.trigger('vimont:ended');
     });
     this.player.addEventListener('canplay', function () {
       self.trigger('vimont:canplay');
       console.log("canplay");
-    });
+    });*/
     return this;
   },
   togglePlay: function () {
@@ -146,7 +159,7 @@ var PlaylistView = Backbone.View.extend({
   template: _.template($("#view-playlist").html()),
   events: {
     "click" : "loadCapsule",
-    "click .toggle-in-playlist" : "toggleList"
+    "click .toggle-in-playlist" : "toggleInPlaylist"
   },
   render: function () {
     this.$el.html(this.template(this.model.toJSON()));
@@ -154,15 +167,24 @@ var PlaylistView = Backbone.View.extend({
   },
 
   initialize : function () {
-    // Listen to the model to pick up playing or stopped
+    // Listen to the model to pick up changes in playlist state
+
+    this.listenTo(this.model, "change:inPlaylist", function () {
+      if(!this.model.get('inPlaylist')) {
+        this.$el.addClass("out-of-playlist");
+      } else {
+        this.$el.removeClass("out-of-playlist");
+      }
+    });
   },
   loadCapsule : function () {
     // Send a message to the AppView to play this capsule
     this.trigger('vimont:play', this);
   },
-  toggleList : function (e) {
+  toggleInPlaylist : function (e) {
     // Add or remove the model from the playlist
     e.stopImmediatePropagation();
+    this.model.toggleInPlaylist();
   }
 
 });
@@ -213,7 +235,7 @@ var AppView = Backbone.View.extend({
       $("#timeline-duration").width(size + "%");
       if(size >= 100) {
         clearInterval(this.startDelay);
-        this.togglePlay();
+        //this.togglePlay();
         $("#timeline-duration").fadeOut();
       }
     }.bind(this), 5000 / 100);
@@ -235,40 +257,69 @@ var AppView = Backbone.View.extend({
   }
 });
 
+var PlaylistRouter = Backbone.Router.extend({
+  routes: {
+    "*capsules": "customList"
+  },
+  customList: function (capsules) {
+
+    var playlistFilter = _.difference(playlist.pluck("path"), capsules.split(/\//));
+
+    console.log(playlistFilter);
+
+    _.each(playlistFilter, function (p) {
+      playlist.where({path: p}).pop().toggleInPlaylist();
+    });
+
+    console.log(playlist);
+
+  }
+});
+
+$(function () {
+  window.playlistRouter = new PlaylistRouter();
+  Backbone.history.start();
+});
+
 // Must load this from the included JSON data
 var playlist = new Playlist();
 
 var playlistData = [
   {
-    "title" : "01-PEA-ProtectionExtraAttentivev07",
+    "path": "PEA",
+    "title" : "01-PEA- Protection Extra Attentive v07",
     "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
     "sources" : {
       "video/mp4" : "http://vimonttoyota.agencewebdiffusion.com.s3.amazonaws.com/videos/01-PEA-ProtectionExtraAttentivev07SORTIE-res360p-rate550k.mp4"
     }
   }
   ,{
-    "title" : "02-Assurancederemplacementv05",
+    "path": "Assurance-de-Remplacement",
+    "title" : "02- Assurance de remplacement v05",
     "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
     "sources" : {
       "video/mp4" : "http://vimonttoyota.agencewebdiffusion.com.s3.amazonaws.com/videos/02-Assurancederemplacementv05SORTIE-res360p-rate550k.mp4"
     }
   }
   ,{
-    "title" : "03-CarteUsure-v04",
+    "path": "Carte-d-Usure",
+    "title" : "03- Carte Usure -v04",
     "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
     "sources" : {
       "video/mp4" : "http://vimonttoyota.agencewebdiffusion.com.s3.amazonaws.com/videos/03-CarteUsure-v04-SORTIE-res360p-rate550k.mp4"
     }
   }
   ,{
-    "title" : "04-Cueilletteduvehiculev06",
+    "path" : "Cueillette",
+    "title" : "04- Cueillette du vehicule v06",
     "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
     "sources" : {
       "video/mp4" : "http://vimonttoyota.agencewebdiffusion.com.s3.amazonaws.com/videos/04-Cueilletteduvehiculev06SORTIE-res360p-rate550k.mp4"
     }
   }
   ,{
-    "title" : "05-Retouralamaisonv03",
+    "path" : "Retour-a-la-maison",
+    "title" : "05- Retour a la maison v03",
     "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
     "sources" : {
       "video/mp4" : "http://vimonttoyota.agencewebdiffusion.com.s3.amazonaws.com/videos/05-Retouralamaisonv03-SORTIE-res360p-rate550k.mp4"
@@ -317,7 +368,7 @@ var appView = new AppView();
   }
   #screen {
     position: absolute;
-    top: 0;
+    top: 20px;
     left: 0;
     right: 0;
     bottom: 0;
@@ -344,6 +395,9 @@ var appView = new AppView();
   .playlist-view {
     width: 100%;
     display: inline-block;
+  }
+  .playlist-view.out-of-playlist {
+    background: black;
   }
   #sidebar {
     position: fixed;
