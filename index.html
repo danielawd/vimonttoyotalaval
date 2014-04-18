@@ -220,9 +220,6 @@ var AppView = Backbone.View.extend({
         )
       );
     });
-
-
-
   },
   addPlaylistItem : function (capsule) {
     var view = new PlaylistView({model: capsule});
@@ -231,8 +228,21 @@ var AppView = Backbone.View.extend({
     this.$("#playlist").append(view.render().el);
   },
   navigateQueue: function () {
+    // If all active capsules have the same section, use that as the url
+    var sections = _(playlist.selected())
+    .chain()
+    .map(function (a) {return a.get('section')})
+    .uniq()
+    .value();
+
     if (playlist.selected().length == playlist.length) {
       var destination = "/";
+    } else if ( // All items in a playlist are active
+      sections.length == 1 &&
+        playlist.where({inPlaylist: true, section: sections[0]}).length == playlist.where({section: sections[0]}).length
+      ) {
+      playlistRouter.navigateToSection(sections[0]);
+      return;
     }
     else {
       var destination = _.reduce(playlist.selected(), function (url, obj) {
