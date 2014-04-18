@@ -58,7 +58,7 @@
 <script type="text/template" id="view-playlist">
   <img class="playlist-capsule-thumbnail" src="<%= poster %>"/>
   <div class="playlist-capsule-title"><%= title %></div>
-  <input class="toggle-in-playlist" type="checkbox" checked/>
+  <input class="toggle-in-playlist" type="checkbox" <% inPlaylist ? "checked" : "" %>/>
 </script>
 <script type="text/template" id="view-controls">
 </script>
@@ -87,15 +87,8 @@ var Playlist = Backbone.Collection.extend({
   model: Capsule,
   initialize: function () {
     this.on('change:inPlaylist', function () {
-      var destination = "/" + _.reduce(new Playlist(this.selected()).pluck("path"), function (url, path) {
-          return url + "/" + path;
-      });
-      playlistRouter.navigate(destination, {replace: true});
-
+      console.log(this.selected());
     });
-  },
-  playlistChange : function () {
-    console.log('hey');
   },
   selected: function () {
     return this.where({inPlaylist: true});
@@ -185,6 +178,7 @@ var PlaylistView = Backbone.View.extend({
     // Add or remove the model from the playlist
     e.stopImmediatePropagation();
     this.model.toggleInPlaylist();
+    this.trigger('vimont:changePlayqueue', this);
   }
 
 });
@@ -197,7 +191,6 @@ var AppView = Backbone.View.extend({
     "click #controls-back" : "previousCapsule"
   },
   initialize : function () {
-    this.openScreen(playlist.at(0));
     this.fillPlaylist();
   },
   fillPlaylist : function () {
@@ -207,7 +200,20 @@ var AppView = Backbone.View.extend({
   addPlaylistItem : function (capsule) {
     var view = new PlaylistView({model: capsule});
     this.listenTo(view, "vimont:play", this.loadCapsule);
+    this.listenTo(view, "vimont:changePlayqueue", this.changePlayqueue);
     this.$("#playlist").append(view.render().el);
+  },
+  changePlayqueue: function () {
+    if (playlist.selected().length == playlist.length) {
+      var destination = "/";
+    }
+    else {
+      var destination = _.reduce(playlist.selected(), function (url, obj) {
+        return url + "/" + obj.get('path');
+      }, "");
+    }
+    console.log(destination);
+    playlistRouter.navigate(destination, {trigger: false, replace: true});
   },
   loadCapsule: function (capsule) {
     this.openScreen(capsule.model);
@@ -262,23 +268,19 @@ var PlaylistRouter = Backbone.Router.extend({
     "*capsules": "customList"
   },
   customList: function (capsules) {
+    if(capsules) {
+      var notInQueue = _.difference(playlist.pluck("path"), capsules.split(/\//));
 
-    var playlistFilter = _.difference(playlist.pluck("path"), capsules.split(/\//));
+      _.each(notInQueue, function (p) {
+        _(playlist.where({path: p})).each(function(outOfPlaylist) {
+          outOfPlaylist.toggleInPlaylist();
+        });
+      });
+    }
 
-    console.log(playlistFilter);
-
-    _.each(playlistFilter, function (p) {
-      playlist.where({path: p}).pop().toggleInPlaylist();
-    });
-
-    console.log(playlist);
-
+    // Open the first active capsule
+    appView.openScreen(playlist.selected()[0]);
   }
-});
-
-$(function () {
-  window.playlistRouter = new PlaylistRouter();
-  Backbone.history.start();
 });
 
 // Must load this from the included JSON data
@@ -331,6 +333,10 @@ playlist.add(playlistData);
 
 var appView = new AppView();
 
+$(function () {
+  window.playlistRouter = new PlaylistRouter();
+  Backbone.history.start();
+});
 </script>
 
 <style type="text/css">
