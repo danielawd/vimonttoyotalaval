@@ -35,9 +35,8 @@
       <div id="timeline-title"></div>
     </div>
   </div>
+
   <div id="screen">
-
-
   </div>
 
   <script type="text/template" id="view-video">
@@ -86,34 +85,27 @@ var Capsule = Backbone.Model.extend({
 var Playlist = Backbone.Collection.extend({
   model: Capsule,
   initialize: function () {
-    this.on('change:inPlaylist', function () {
-      console.log(this.selected());
-    });
   },
   selected: function () {
     return this.where({inPlaylist: true});
   },
+  // Find the next neighbor in the global playlist
+  // Build a list of capsules after and before the active capsule
   rotate: function (capsule) {
-    // Find the next neighbor in the global playlist
     var idx = this.indexOf(capsule);
-
-    // Build a list of capsules after and before the active capsule
     return _.union(this.rest(idx + 1), this.first(idx));
   },
   next: function(capsule) {
-    // Return only if toggled to active
     return _(this.rotate(capsule)).find(function (neighbor) {
       return neighbor.get('inPlaylist');
     });
   },
   previous: function(capsule) {
-    // Return only if toggled to active
     return _(this.rotate(capsule).reverse()).find(function (neighbor) {
       return neighbor.get('inPlaylist');
     });
   }
 });
-
 
 // Contains the video player
 var VideoView = Backbone.View.extend({
@@ -165,7 +157,6 @@ var PlaylistView = Backbone.View.extend({
 
   initialize : function () {
     // Listen to the model to pick up changes in playlist state
-
     this.listenTo(this.model, "change:inPlaylist", function () {
       if(!this.model.get('inPlaylist')) {
         this.$el.addClass("out-of-playlist");
@@ -179,14 +170,15 @@ var PlaylistView = Backbone.View.extend({
     // Send a message to the AppView to play this capsule
     this.trigger('vimont:play', this);
   },
+  // Add or remove the model from the playlist
   toggleInPlaylist : function (e) {
-    // Add or remove the model from the playlist
     e.stopImmediatePropagation();
     this.model.toggleInPlaylist();
     this.trigger('vimont:changePlayqueue', this);
   }
 
 });
+
 // Builds the global App
 var AppView = Backbone.View.extend({
   el: $("body"),
@@ -205,10 +197,10 @@ var AppView = Backbone.View.extend({
   addPlaylistItem : function (capsule) {
     var view = new PlaylistView({model: capsule});
     this.listenTo(view, "vimont:play", this.loadCapsule);
-    this.listenTo(view, "vimont:changePlayqueue", this.changePlayqueue);
+    this.listenTo(view, "vimont:changePlayqueue", this.navigateQueue);
     this.$("#playlist").append(view.render().el);
   },
-  changePlayqueue: function () {
+  navigateQueue: function () {
     if (playlist.selected().length == playlist.length) {
       var destination = "/";
     }
@@ -217,12 +209,11 @@ var AppView = Backbone.View.extend({
         return url + "/" + obj.get('path');
       }, "");
     }
-    console.log(destination);
+
     playlistRouter.navigate(destination, {trigger: false, replace: true});
   },
   loadCapsule: function (capsule) {
     this.openScreen(capsule.model);
-
   },
   openScreen: function (activeModel) {
     if (activeModel == null) return;
