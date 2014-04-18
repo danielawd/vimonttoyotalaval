@@ -58,7 +58,7 @@
 <script type="text/template" id="view-playlist">
   <img class="playlist-capsule-thumbnail" src="<%= poster %>"/>
   <div class="playlist-capsule-title"><%= title %></div>
-  <input class="toggle-in-playlist" type="checkbox" <% inPlaylist ? "checked" : "" %>/>
+  <input class="toggle-in-playlist" type="checkbox" <%= inPlaylist ? "checked='checked'" : "" %>/>
 </script>
 <script type="text/template" id="view-controls">
 </script>
@@ -98,15 +98,19 @@ var Playlist = Backbone.Collection.extend({
     var idx = this.indexOf(capsule);
 
     // Build a list of capsules after and before the active capsule
-    return new Playlist(_.union(this.rest(idx + 1), this.first(idx)));
+    return _.union(this.rest(idx + 1), this.first(idx));
   },
   next: function(capsule) {
     // Return only if toggled to active
-    return _.first(this.rotate(capsule).selected());
+    return _(this.rotate(capsule)).find(function (neighbor) {
+      return neighbor.get('inPlaylist');
+    });
   },
   previous: function(capsule) {
     // Return only if toggled to active
-    return _.last(this.rotate(capsule).selected());
+    return _(this.rotate(capsule).reverse()).find(function (neighbor) {
+      return neighbor.get('inPlaylist');
+    });
   }
 });
 
@@ -168,6 +172,7 @@ var PlaylistView = Backbone.View.extend({
       } else {
         this.$el.removeClass("out-of-playlist");
       }
+      this.render();
     });
   },
   loadCapsule : function () {
@@ -220,6 +225,8 @@ var AppView = Backbone.View.extend({
 
   },
   openScreen: function (activeModel) {
+    if (activeModel == null) return;
+
     // Silly Chrome hack to prevent bug where videos won't start
     // unless the first one got played
     //var chromeFix = $("video").get(0);
