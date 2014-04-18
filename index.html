@@ -19,9 +19,9 @@
     <a href="http://vimonttoyotalaval.com">Vimont Retour</a>
   </div>
   <div id="sections">
-    <div class="section">Produits financiers</div>
-      <script type="text/template" id="view-sections">
-      </script>
+    <script type="text/template" id="view-sections">
+      <div class="section"><%= section %></div>
+    </script>
   </div>
 </div>
 
@@ -88,6 +88,18 @@ var Playlist = Backbone.Collection.extend({
   },
   selected: function () {
     return this.where({inPlaylist: true});
+  },
+  toggleSection: function (newSection) {
+    // Set all videos in the section to on
+    _(this.where({section: newSection})).each(function (capsule) {
+      capsule.set('inPlaylist', true);
+    })
+    // Set all videos out of the section to off
+    _(this.filter(function (capsule) {
+      return capsule.get('section') != newSection;
+    })).each(function (capsule) {
+      capsule.set('inPlaylist', false);
+    })
   },
   // Find the next neighbor in the global playlist
   // Build a list of capsules after and before the active capsule
@@ -183,16 +195,34 @@ var PlaylistView = Backbone.View.extend({
 var AppView = Backbone.View.extend({
   el: $("body"),
   events : {
+    "click .section" : "toggleSection",
     "click #controls-play" : "togglePlay",
     "click #controls-next" : "nextCapsule",
     "click #controls-back" : "previousCapsule"
   },
   initialize : function () {
     this.fillPlaylist();
+    this.fillSections();
   },
   fillPlaylist : function () {
     this.$("#playlist").empty();
     playlist.each(this.addPlaylistItem, this);
+  },
+  fillSections : function () {
+    var sectionTemplate = _.template($("#view-sections").html());
+
+    _(playlist.pluck("section")).chain()
+    .uniq()
+    .each(function (section) {
+      this.$("#sections").append(
+        sectionTemplate(
+          {"section" : section}
+        )
+      );
+    });
+
+
+
   },
   addPlaylistItem : function (capsule) {
     var view = new PlaylistView({model: capsule});
@@ -244,6 +274,12 @@ var AppView = Backbone.View.extend({
       }
     }.bind(this), 5000 / 100);
   },
+  toggleSection: function (e) {
+    // Update the playlist with right sections
+    playlist.toggleSection(e.target.innerHTML);
+    // Navigate to the section
+    playlistRouter.navigateToSection(e.target.innerHTML);
+  },
   togglePlay: function () {
     if(this.screen.togglePlay()) {
       $("#controls-play").addClass("paused");
@@ -265,15 +301,33 @@ var PlaylistRouter = Backbone.Router.extend({
   routes: {
     "*capsules": "customList"
   },
+  initialize: function () {
+    //Make some nice routes out of playlist sections
+    var rawSections = _(playlist.pluck("section")).uniq();
+    this.sections = _(rawSections).chain()
+    .map(function (section) {
+      var sectionPath = section.replace(/\s+/g, '-').toLowerCase();
+      return sectionPath;
+    }).value();
+    this.sections = _.object(rawSections, this.sections);
+  },
+  navigateToSection: function (section) {
+    this.navigate(this.sections[section], {trigger: false, replace: true});
+  },
   customList: function (capsules) {
     if(capsules) {
-      var notInQueue = _.difference(playlist.pluck("path"), capsules.split(/\//));
-
-      _.each(notInQueue, function (p) {
-        _(playlist.where({path: p})).each(function(outOfPlaylist) {
-          outOfPlaylist.toggleInPlaylist();
+      // If requesting a section, load all its capsules
+      if(_.contains(this.sections, capsules)) {
+        playlist.toggleSection(_(this.sections).invert()[capsules]);
+      } else {
+        // Otherwise load individual capsules
+        var notInQueue = _.difference(playlist.pluck("path"), capsules.split(/\//));
+        _.each(notInQueue, function (p) {
+          _(playlist.where({path: p})).each(function(outOfPlaylist) {
+            outOfPlaylist.toggleInPlaylist();
+          });
         });
-      });
+      }
     }
 
     // Open the first active capsule
@@ -287,6 +341,7 @@ var playlist = new Playlist();
 var playlistData = [
   {
     "path": "PEA",
+    "section": "Produits financiers",
     "title" : "01-PEA- Protection Extra Attentive v07",
     "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
     "sources" : {
@@ -295,6 +350,7 @@ var playlistData = [
   }
   ,{
     "path": "Assurance-de-Remplacement",
+    "section": "Produits financiers",
     "title" : "02- Assurance de remplacement v05",
     "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
     "sources" : {
@@ -303,6 +359,7 @@ var playlistData = [
   }
   ,{
     "path": "Carte-d-Usure",
+    "section": "Produits financiers",
     "title" : "03- Carte Usure -v04",
     "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
     "sources" : {
@@ -311,6 +368,7 @@ var playlistData = [
   }
   ,{
     "path" : "Cueillette",
+    "section": "Livraison",
     "title" : "04- Cueillette du vehicule v06",
     "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
     "sources" : {
@@ -319,6 +377,7 @@ var playlistData = [
   }
   ,{
     "path" : "Retour-a-la-maison",
+    "section": "Livraison",
     "title" : "05- Retour a la maison v03",
     "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
     "sources" : {
