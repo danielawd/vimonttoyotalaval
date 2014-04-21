@@ -4,11 +4,12 @@
   <meta charset="UTF-8">
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="viewport" content="initial-scale=1,width=device-width,maximum-scale=1">
-  <title>Vimont Toyota Backbone.js Application</title>
+  <title>Vimont Toyota Laval - Chaînes vidéos</title>
 
   <script src="js/jquery-1.11.0.js"></script>
   <script src="js/underscore.js"></script>
   <script src="js/backbone.js"></script>
+  <script src="playlist-data.js"></script>
   <script src="js/mediaelement/mediaelement-and-player.js"></script>
   <link rel="stylesheet" href="js/mediaelement/mediaelementplayer.css" />
 </head>
@@ -40,7 +41,7 @@
   </div>
 
   <script type="text/template" id="view-video">
-  <video id="media-element" controls height="100%" width="100%">
+  <video id="media-element" poster="<%= poster %>" controls height="100%" width="100%">
     <% _.each(sources, function (source, type) { %>
       <source type="<%= type %>" src="<%= source %>"/>
     <% }); %>
@@ -124,9 +125,11 @@ var Playlist = Backbone.Collection.extend({
 var VideoView = Backbone.View.extend({
   el: $("#screen"),
   template: _.template($("#view-video").html()),
-  events: {},
+  events: {
+  },
   initialize: function() {
     this.render();
+    this.on("vimont:canplay", this.videoCanPlay);
   },
   render: function () {
     var self = this;
@@ -137,20 +140,21 @@ var VideoView = Backbone.View.extend({
       features: ['playpause', 'progress' ,'volume'],
       success: function (player, node) {
         self.player = player;
-        console.log(player);
+        player.addEventListener('ended', function (e) {
+          self.trigger('vimont:ended', e);
+        });
+        player.addEventListener('canplay', function (e) {
+          self.trigger('vimont:canplay', e);
+        });
+        self.player = player;
       }
     });
-    /*this.player.addEventListener('ended', function () {
-      self.trigger('vimont:ended');
-    });
-    this.player.addEventListener('canplay', function () {
-      self.trigger('vimont:canplay');
-      console.log("canplay");
-    });*/
     return this;
   },
   togglePlay: function () {
     this.player.play();
+  },
+  videoCanPlay: function (event) {
   }
 });
 
@@ -189,7 +193,6 @@ var PlaylistView = Backbone.View.extend({
     this.model.toggleInPlaylist();
     this.trigger('vimont:changePlayqueue', this);
   }
-
 });
 
 // Builds the global App
@@ -258,33 +261,14 @@ var AppView = Backbone.View.extend({
     this.openScreen(capsule.model);
   },
   openScreen: function (activeModel) {
+    // The playqueue returned nothing active
     if (activeModel == null) return;
 
-    // Silly Chrome hack to prevent bug where videos won't start
-    // unless the first one got played
-    //var chromeFix = $("video").get(0);
-    //if(chromeFix) { chromeFix.play(); chromeFix.pause(); }
 
     this.screen = new VideoView({model: activeModel});
-
-   // $("#screen").html(this.screen.render().el);
     $("#timeline-title").html(activeModel.get('title'));
 
     this.listenTo(this.screen, "vimont:ended", this.nextCapsule);
-
-    // Set a timer to start the video
-    var size = 0;
-    clearInterval(this.startDelay);
-    this.startDelay = setInterval(function () {
-      size += 1;
-      $("#timeline-duration").fadeIn();
-      $("#timeline-duration").width(size + "%");
-      if(size >= 100) {
-        clearInterval(this.startDelay);
-        //this.togglePlay();
-        $("#timeline-duration").fadeOut();
-      }
-    }.bind(this), 5000 / 100);
   },
   toggleSection: function (e) {
     // Update the playlist with right sections
@@ -305,6 +289,19 @@ var AppView = Backbone.View.extend({
   nextCapsule: function () {
     // Move active screen in collection, or wrap to start
     this.openScreen(playlist.next(this.screen.model));
+    // Set a timer to start the video
+    var size = 0;
+    clearInterval(this.startDelay);
+    $("#timeline-duration").fadeIn();
+    this.startDelay = setInterval(function () {
+      size += 1;
+      $("#timeline-duration").width(size + "%");
+      if(size >= 100) {
+        clearInterval(this.startDelay);
+        this.togglePlay();
+        $("#timeline-duration").fadeOut();
+      }
+    }.bind(this), 5000 / 100);
   },
   previousCapsule: function () {
     // Move active screen in collection, or wrap to end
@@ -352,54 +349,6 @@ var PlaylistRouter = Backbone.Router.extend({
 
 // Must load this from the included JSON data
 var playlist = new Playlist();
-
-var playlistData = [
-  {
-    "path": "PEA",
-    "section": "Produits financiers",
-    "title" : "01-PEA- Protection Extra Attentive v07",
-    "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
-    "sources" : {
-      "video/mp4" : "http://vimonttoyota.agencewebdiffusion.com.s3.amazonaws.com/videos/01-PEA-ProtectionExtraAttentivev07SORTIE-res360p-rate550k.mp4"
-    }
-  }
-  ,{
-    "path": "Assurance-de-Remplacement",
-    "section": "Produits financiers",
-    "title" : "02- Assurance de remplacement v05",
-    "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
-    "sources" : {
-      "video/mp4" : "http://vimonttoyota.agencewebdiffusion.com.s3.amazonaws.com/videos/02-Assurancederemplacementv05SORTIE-res360p-rate550k.mp4"
-    }
-  }
-  ,{
-    "path": "Carte-d-Usure",
-    "section": "Produits financiers",
-    "title" : "03- Carte Usure -v04",
-    "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
-    "sources" : {
-      "video/mp4" : "http://vimonttoyota.agencewebdiffusion.com.s3.amazonaws.com/videos/03-CarteUsure-v04-SORTIE-res360p-rate550k.mp4"
-    }
-  }
-  ,{
-    "path" : "Cueillette",
-    "section": "Livraison",
-    "title" : "04- Cueillette du vehicule v06",
-    "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
-    "sources" : {
-      "video/mp4" : "http://vimonttoyota.agencewebdiffusion.com.s3.amazonaws.com/videos/04-Cueilletteduvehiculev06SORTIE-res360p-rate550k.mp4"
-    }
-  }
-  ,{
-    "path" : "Retour-a-la-maison",
-    "section": "Livraison",
-    "title" : "05- Retour a la maison v03",
-    "poster" : "http://sandbox.thewikies.com/vfe-generator/images/big-buck-bunny_poster.jpg",
-    "sources" : {
-      "video/mp4" : "http://vimonttoyota.agencewebdiffusion.com.s3.amazonaws.com/videos/05-Retouralamaisonv03-SORTIE-res360p-rate550k.mp4"
-    }
-  }
-];
 
 playlist.add(playlistData);
 
@@ -449,7 +398,7 @@ $(function () {
     margin-right: 10px;
   }
   #sections a {
-    padding: 5px 15px;
+    padding: 2px 15px;
     margin: 0 0 0 5px;
     border: 1px solid gray;
     cursor: pointer;
@@ -503,6 +452,7 @@ $(function () {
   .playlist-view.out-of-playlist {
     position: absolute;
     top: 0;
+    left: 0;
     visibility: hidden;
     background: black;
   }
