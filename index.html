@@ -294,15 +294,16 @@ var AppView = Backbone.View.extend({
     var size = 0;
     clearInterval(this.startDelay);
     $("#timeline-duration").fadeIn();
+    var self = this;
     this.startDelay = setInterval(function () {
       size += 1;
       $("#timeline-duration").width(size + "%");
       if(size >= 100) {
-        clearInterval(this.startDelay);
-        this.togglePlay();
+        clearInterval(self.startDelay);
+        self.togglePlay();
         $("#timeline-duration").fadeOut();
       }
-    }.bind(this), 5000 / 100);
+    }, 5000 / 100);
   },
   previousCapsule: function () {
     // Move active screen in collection, or wrap to end
