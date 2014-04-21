@@ -16,19 +16,19 @@
 
 <div id="header">
   <div id="logo">
-    <a href="http://vimonttoyotalaval.com">Vimont Retour</a>
+    <a href="http://vimonttoyotalaval.com">Retour à Vimont Toyota Laval</a>
   </div>
   <div id="sections">
     <script type="text/template" id="view-sections">
-      <div class="section"><%= section %></div>
+      <a class="section"><%= section %></a>
     </script>
   </div>
 </div>
 
 <div id="main-view">
   <div id="controls">
-    <div id="controls-back">back</div>
-    <div id="controls-next">next</div>
+    <div id="controls-back">précédent</div>
+    <div id="controls-next">suivant</div>
     <div id="timeline">
       <div id="timeline-buffer"></div>
       <div id="timeline-duration"></div>
@@ -52,12 +52,13 @@
 <div id="sidebar">
   <ul id="playlist">
   </ul>
+  <a id="advanced-playlist">...</a>
 </div>
 
 <script type="text/template" id="view-playlist">
   <img class="playlist-capsule-thumbnail" src="<%= poster %>"/>
-  <div class="playlist-capsule-title"><%= title %></div>
-  <input class="toggle-in-playlist" type="checkbox" <%= inPlaylist ? "checked='checked'" : "" %>/>
+  <div class="playlist-capsule-title"> <input class="toggle-in-playlist" type="checkbox" <%= inPlaylist ? "checked='checked'" : "" %>/> <%= title %></div>
+
 </script>
 <script type="text/template" id="view-controls">
 </script>
@@ -198,7 +199,8 @@ var AppView = Backbone.View.extend({
     "click .section" : "toggleSection",
     "click #controls-play" : "togglePlay",
     "click #controls-next" : "nextCapsule",
-    "click #controls-back" : "previousCapsule"
+    "click #controls-back" : "previousCapsule",
+    "click #advanced-playlist" : "advancedPlaylist"
   },
   initialize : function () {
     this.fillPlaylist();
@@ -289,6 +291,9 @@ var AppView = Backbone.View.extend({
     playlist.toggleSection(e.target.innerHTML);
     // Navigate to the section
     playlistRouter.navigateToSection(e.target.innerHTML);
+  },
+  advancedPlaylist: function (e) {
+    $("#sidebar").toggleClass("advanced");
   },
   togglePlay: function () {
     if(this.screen.togglePlay()) {
@@ -407,14 +412,20 @@ $(function () {
 </script>
 
 <style type="text/css">
+@import url(http://fonts.googleapis.com/css?family=Yanone+Kaffeesatz:300);
   body {
     background: white;
     color: gray;
-    font-family: sans-serif;
-    font-size: 16px;
+    font-family: 'Yanone Kaffeesatz', sans-serif;
+    font-size: 20px;
     line-height: 1em;
     margin: 0;
     padding: 0;
+  }
+
+  a:link, a:hover, a:active, a:visited {
+    color: #aa0000;
+    text-decoration: none;
   }
   #header {
     position: fixed;
@@ -422,17 +433,38 @@ $(function () {
     left: 0;
     right: 0;
     z-index: 1000;
-    height: 80px;
+    height: 45px;
+    line-height: 45px;
     background: rgba(0,0,0,.1);
     text-align: center;
   }
+  #header:before {
+    content: " ";
+    display: table;
+  }
+  #header a {
+    padding: 0 15px;
+  }
+  #sections {
+    margin-right: 10px;
+  }
+  #sections a {
+    padding: 5px 15px;
+    margin: 0 0 0 5px;
+    border: 1px solid gray;
+    cursor: pointer;
+  }
+  #logo {
+    float: left;
+  }
+  #sections {float: right;}
   #controls {
     cursor: pointer;
   }
   #main-view {
     position: fixed;
     margin-right: 20%;
-    margin-top: 80px;
+    margin-top: 45px;
     top: 0;
     left: 0;
     right: 0;
@@ -441,10 +473,9 @@ $(function () {
   }
   #screen {
     position: absolute;
-    top: 20px;
+    top: 40px;
     left: 0;
     right: 0;
-    bottom: 0;
     height: 0;
     padding-bottom: 56.25%;
     width: 100%;
@@ -470,32 +501,67 @@ $(function () {
     display: inline-block;
   }
   .playlist-view.out-of-playlist {
+    position: absolute;
+    top: 0;
+    visibility: hidden;
     background: black;
+  }
+  .advanced .playlist-view.out-of-playlist {
+    position: static;
+    visibility: visible;
+  }
+  .playlist-view.out-of-playlist img {
+    opacity: .5;
+  }
+  .playlist-capsule-title {
+    padding: 15px;
+  }
+  .toggle-in-playlist {
+    display: none;
+  }
+  .advanced .toggle-in-playlist {
+    display: inline;
+  }
+  #advanced-playlist {
+    position: fixed;
+    bottom: 0;
+    display: block;
+    line-height: 35px;
+    width: 20%;
+    background: white;
+    background-color: rgba(255,255,255,.8);
+  }
+  .advanced #advanced-playlist {
+    background: gray;
+    color: white;
   }
   #sidebar {
     position: fixed;
     bottom: 0;
     right: 0;
-    top: 80px;
+    top: 45px;
     width: 20%;
     z-index: 1000;
-    background: rgba(0,0,0,.25);
+    background: rgba(0,0,0,.15);
     text-align: center;
     cursor: pointer;
     overflow: scroll;
   }
+  #playlist {
+    margin-bottom: 35px;
+  }
   #controls {
     position: relative;
-    width: 98%;
-    height: 20px;
-    padding: 1%;
+    width: 100%;
+    height: 35px;
+    line-height: 35px;
   }
   #controls-back {
     position: absolute;
     left: 0;
     top: 0;
     bottom: 0;
-    padding: 10px;
+    padding: 0px 15px;
     background: rgba(255,255,255,.5);
   }
   #controls-next {
@@ -503,7 +569,7 @@ $(function () {
     right: 0;
     top: 0;
     bottom: 0;
-    padding: 10px;
+    padding: 0px 15px;
     background: rgba(255,255,255,.5);
   }
   #timeline {
@@ -513,12 +579,38 @@ $(function () {
   #timeline-duration {
     position: absolute;
     left: 0;
-    top: 0;
-    height: 100%;
+    top: 0px;
+    height: 5px;
     width: 0;
-    background: red;
+    background: #ee0000;;
     z-index: -1;
     display: none;
+  }
+  @media screen and (orientation: portrait) {
+    #main-view {
+      margin-right: 0;
+    }
+    #sidebar {
+      left: 0;
+      top: auto;
+      width: 100%;
+      overflow-x: scroll;
+      overflow-y: hidden;
+      white-space: nowrap;
+    }
+    #playlist {
+      text-align: left;
+    }
+    .playlist-view {
+      width: 40%; height: 100%;
+      white-space: normal;
+      vertical-align: top;
+      display: inline-block;
+      text-align: center;
+    }
+    #advanced-playlist {
+      width: 100%;
+    }
   }
 </style>
 </body>
