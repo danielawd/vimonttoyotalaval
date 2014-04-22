@@ -165,6 +165,18 @@ var VideoView = Backbone.View.extend({
       });
     }
   },
+  loadCapsule: function (capsule) {
+    this.model = capsule;
+    this.player.pause();
+    this.player.setSrc(
+      _(capsule.get('sources')) // Transmute our data into the mejs format
+      .chain()
+      .pairs()
+      .map(function (source) {return _.object(['type', 'src'], source)})
+      .value()
+      );
+    this.player.setPoster(capsule.get('poster'));
+  },
   togglePlay: function () {
     this.player.play();
   },
@@ -278,13 +290,16 @@ var AppView = Backbone.View.extend({
     // The playqueue returned nothing active
     if (activeModel == null) return;
     // Clean up lingering mediaelement player
-    if (typeof this.screen !== "undefined") this.screen.destroy();
+    if (typeof this.screen !== "undefined") {
+      this.screen.loadCapsule(activeModel);
+    } else {
+      this.screen = new VideoView({model: activeModel});
+      this.listenTo(this.screen, "vimont:ended", this.endCapsule);
+      this.listenTo(this.screen, "vimont:playing", this.resumed);
+    }
 
-    this.screen = new VideoView({model: activeModel});
     $("#timeline-title").html(activeModel.get('title'));
 
-    this.listenTo(this.screen, "vimont:ended", this.endCapsule);
-    this.listenTo(this.screen, "vimont:playing", this.resumed);
   },
   toggleSection: function (e) {
     // Update the playlist with right sections
