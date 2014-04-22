@@ -139,6 +139,8 @@ var VideoView = Backbone.View.extend({
     this.player = new MediaElementPlayer("#media-element", {
       iPadUseNativeControls: true,
       iPhoneUseNativeControls: true,
+      hideVideoControlsOnLoad: true,
+      enablePluginSmoothing: true,
       features: ['playpause', 'progress' ,'volume'],
       success: function (player, node) {
         self.player = player;
