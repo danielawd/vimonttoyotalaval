@@ -183,7 +183,6 @@ var VideoView = Backbone.View.extend({
     .css({"background-image" : "url(" + capsule.get('poster') + ")"}).show()
     .find("img").attr('src',capsule.get('poster'));
     if(typeof this.player.setPoster !== "undefined") {
-      this.player.setPoster(capsule.get('poster'));
       $("video#media-element").attr({'poster': capsule.get('poster')});
       $(".mejs-playpause-button").removeClass('mejs-pause').addClass('mejs-play');
       $(".mejs-overlay-play").show();
