@@ -139,6 +139,8 @@ var VideoView = Backbone.View.extend({
     this.player = new MediaElementPlayer("#media-element", {
       iPadUseNativeControls: true,
       iPhoneUseNativeControls: true,
+      hideVideoControlsOnLoad: true,
+      enablePluginSmoothing: true,
       features: ['playpause', 'progress' ,'volume'],
       success: function (player, node) {
         self.player = player;
@@ -175,7 +177,17 @@ var VideoView = Backbone.View.extend({
       .map(function (source) {return _.object(['type', 'src'], source)})
       .value()
       );
-    this.player.setPoster(capsule.get('poster'));
+
+    // There should be a better way to do this
+    $(".mejs-poster")
+    .css({"background-image" : "url(" + capsule.get('poster') + ")"}).show()
+    .find("img").attr('src',capsule.get('poster'));
+    if(typeof this.player.setPoster !== "undefined") {
+      this.player.setPoster(capsule.get('poster'));
+      $("video#media-element").attr({'poster': capsule.get('poster')});
+      $(".mejs-playpause-button").removeClass('mejs-pause').addClass('mejs-play');
+      $(".mejs-overlay-play").show();
+    }
   },
   togglePlay: function () {
     this.player.play();
