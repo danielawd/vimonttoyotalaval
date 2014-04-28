@@ -42,7 +42,7 @@
   </div>
 
   <script type="text/template" id="view-video">
-  <video id="media-element" poster="<%= poster %>" controls height="100%" width="100%">
+  <video id="media-element" poster="<%= poster %>" controls>
     <% _.each(sources, function (source, type) { %>
       <source type="<%= type %>" src="<%= source %>"/>
     <% }); %>
