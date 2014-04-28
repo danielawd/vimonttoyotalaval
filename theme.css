@@ -17,7 +17,7 @@
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;
+    right: 20%;
     z-index: 1000;
     height: 45px;
     line-height: 45px;
@@ -27,6 +27,10 @@
   #header:before {
     content: " ";
     display: table;
+  }
+  #header:after {
+    content: "";
+    display: block;
   }
   #header a {
     padding: 0 15px;
@@ -44,6 +48,7 @@
     float: left;
   }
   #sections {float: right;}
+
 
   #main-view {
     position: fixed;
@@ -109,12 +114,12 @@
   }
   #advanced-playlist {
     position: fixed;
-    bottom: 0;
+    top: 0;
     display: block;
-    line-height: 35px;
+    line-height: 45px;
     width: 20%;
-    background: white;
-    background-color: rgba(255,255,255,.8);
+    background: #eee;
+    opacity: .85;
   }
   .advanced #advanced-playlist {
     background: gray;
@@ -124,40 +129,36 @@
     position: fixed;
     bottom: 0;
     right: 0;
-    top: 45px;
+    top: 0;
     width: 20%;
     z-index: 1000;
     background: rgba(0,0,0,.15);
     text-align: center;
     cursor: pointer;
     overflow: scroll;
+    overflow-x:hidden;
   }
   #playlist {
-    margin-bottom: 35px;
+    margin-top: 45px;
   }
   #controls {
     position: relative;
     width: 100%;
     height: 35px;
     line-height: 35px;
+    cursor: pointer;
   }
   #controls-back {
-    position: absolute;
-    cursor: pointer;
-    left: 0;
-    top: 0;
-    bottom: 0;
+    float: left;
     padding: 0px 15px;
     background: rgba(255,255,255,.5);
+    z-index: 1000;
   }
   #controls-next {
-    position: absolute;
-    cursor: pointer;
-    right: 0;
-    top: 0;
-    bottom: 0;
+    float: right;
     padding: 0px 15px;
     background: rgba(255,255,255,.5);
+    z-index: 1000;
   }
   #timeline {
     width: 100%;
@@ -169,14 +170,27 @@
     top: 0px;
     height: 5px;
     width: 0;
-    background: #ee0000;;
+    background: #ee0000;
     z-index: -1;
     display: none;
   }
   @media screen and (orientation: portrait) {
+    #header {
+      right: 0;
+      position: relative;
+      height: auto;
+    }
+    #header:after {
+      content: " ";
+      display: table;
+      clear: both;
+    }
     #main-view {
       margin-right: 0;
+      top: auto;
+      position: relative;
     }
+
     #sidebar {
       left: 0;
       top: auto;
@@ -187,6 +201,8 @@
     }
     #playlist {
       text-align: left;
+      margin-bottom: 45px;
+      margin-top: 0;
     }
     .playlist-view {
       width: 40%; height: 100%;
@@ -197,5 +213,43 @@
     }
     #advanced-playlist {
       width: 100%;
+      bottom: 0;
+      top: auto;
     }
+  }
+  @media screen and (max-width: 700px) and (orientation: landscape) {
+    body {
+      font-size: 12px;
+      line-height: 24px;
+    }
+  }
+  @media screen and (max-width: 400px) {
+    body {
+      font-size: 12px;
+      line-height: 24px;
+    }
+    #header {
+      line-height: 24px;
+    }
+    #advanced-playlist {
+      width: 45px;
+      left: auto;
+      right: 0;
+    }
+    #main-view {
+      margin-top: 0;
+    }
+    #playlist {
+      margin-bottom: 0;
+    }
+    .playlist-capsule-title {
+      padding: 5px;
+    }
+  }
+  .mejs-container,
+  .mejs-video video,
+  .mejs-layer {
+    max-width: 100%;
+    height: auto;
+    max-height: auto;
   }
