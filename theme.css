@@ -17,7 +17,7 @@
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;
+    right: 20%;
     z-index: 1000;
     height: 45px;
     line-height: 45px;
@@ -109,12 +109,12 @@
   }
   #advanced-playlist {
     position: fixed;
-    bottom: 0;
+    top: 0;
     display: block;
-    line-height: 35px;
+    line-height: 45px;
     width: 20%;
-    background: white;
-    background-color: rgba(255,255,255,.8);
+    background: #eee;
+    opacity: .85;
   }
   .advanced #advanced-playlist {
     background: gray;
@@ -124,16 +124,17 @@
     position: fixed;
     bottom: 0;
     right: 0;
-    top: 45px;
+    top: 0;
     width: 20%;
     z-index: 1000;
     background: rgba(0,0,0,.15);
     text-align: center;
     cursor: pointer;
     overflow: scroll;
+    overflow-x:hidden;
   }
   #playlist {
-    margin-bottom: 35px;
+    margin-top: 45px;
   }
   #controls {
     position: relative;
@@ -169,7 +170,7 @@
     top: 0px;
     height: 5px;
     width: 0;
-    background: #ee0000;;
+    background: #ee0000;
     z-index: -1;
     display: none;
   }
