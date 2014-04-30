@@ -5,7 +5,7 @@ var playlistData = [
     "title" : "PEA - Protection Extra Attentive",
     "poster" : "http://vimonttoyota.agencewebdiffusion.com.s3.amazonaws.com/videos/posters/1-PEA_platine.jpg",
     "sources" : {
-      "video/mp4" : "http://d28a99uh4on6s8.cloudfront.net/videos/HTML5V2/01-PEA-ProtectionExtraAttentivev07SORTIE.mp4"
+      "video/mp4" : "http://d28a99uh4on6s8.cloudfront.net/videos/HTML5V3/01-PEA-ProtectionExtraAttentivev07SORTIE.mp4"
     }
   }
   ,{
